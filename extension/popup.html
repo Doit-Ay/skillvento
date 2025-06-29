@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skillvento Certificate Capture</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+        </svg>
+        <span class="logo-text">Skillvento</span>
+      </div>
+    </div>
+
+    <!-- Not Logged In State -->
+    <div id="not-logged-in" class="state-container" style="display: none;">
+      <div class="icon-container">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      </div>
+      <h3>Login Required</h3>
+      <p>Please log in to your Skillvento account to capture certificates.</p>
+      <button id="login-btn" class="btn btn-primary">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+        </svg>
+        Login to Skillvento
+      </button>
+    </div>
+
+    <!-- Logged In State -->
+    <div id="logged-in" class="state-container">
+      <!-- User Info -->
+      <div class="user-info">
+        <div class="user-avatar">
+          <span id="user-initial">U</span>
+        </div>
+        <div class="user-details">
+          <div class="user-name" id="user-name">Loading...</div>
+          <div class="user-email" id="user-email">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Scan Status -->
+      <div id="scan-status" class="scan-status">
+        <div class="scan-icon">
+          <svg class="icon scanning" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <div class="scan-text">
+          <div class="scan-title">Scanning page...</div>
+          <div class="scan-subtitle">Looking for certificates</div>
+        </div>
+      </div>
+
+      <!-- No Certificates Found -->
+      <div id="no-certificates" class="no-certificates" style="display: none;">
+        <div class="icon-container">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <h3>No Certificates Found</h3>
+        <p>We couldn't find any certificates on this page. Try visiting a page with certificate images or PDFs.</p>
+        <button id="manual-capture-btn" class="btn btn-outline">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Manual Capture
+        </button>
+      </div>
+
+      <!-- Certificates Found -->
+      <div id="certificates-found" class="certificates-found" style="display: none;">
+        <div class="certificates-header">
+          <h3>Certificates Found</h3>
+          <span id="certificate-count" class="certificate-count">0</span>
+        </div>
+        <div id="certificates-list" class="certificates-list">
+          <!-- Certificates will be populated here -->
+        </div>
+        <div class="certificates-actions">
+          <button id="capture-selected-btn" class="btn btn-primary" disabled>
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Upload Selected
+          </button>
+        </div>
+      </div>
+
+      <!-- Upload Progress -->
+      <div id="upload-progress" class="upload-progress" style="display: none;">
+        <div class="progress-header">
+          <h3>Uploading Certificates</h3>
+          <span id="upload-status">0 / 0</span>
+        </div>
+        <div class="progress-bar">
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+        <div id="upload-details" class="upload-details">
+          Processing...
+        </div>
+      </div>
+
+      <!-- Upload Complete -->
+      <div id="upload-complete" class="upload-complete" style="display: none;">
+        <div class="icon-container success">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3>Upload Complete!</h3>
+        <p id="upload-summary">Successfully uploaded certificates to your portfolio.</p>
+        <div class="complete-actions">
+          <button id="view-dashboard-btn" class="btn btn-primary">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            View Dashboard
+          </button>
+          <button id="scan-again-btn" class="btn btn-outline">Scan Again</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-links">
+        <a href="#" id="settings-link">Settings</a>
+        <a href="#" id="help-link">Help</a>
+      </div>
+      <div class="footer-version">v1.0.0</div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

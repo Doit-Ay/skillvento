@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Optimize font rendering */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Prevent layout shifts */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Improve performance for animations */
+.animate-spin,
+.animate-pulse,
+.animate-bounce,
+.animate-ping {
+  will-change: transform;
+}
+
+/* Optimize transitions */
+.transition-all,
+.transition-colors,
+.transition-opacity,
+.transition-transform {
+  will-change: auto;
+}
+
+/* Prevent FOUC (Flash of Unstyled Content) */
+.invisible-until-loaded {
+  visibility: hidden;
+}
+
+.loaded .invisible-until-loaded {
+  visibility: visible;
+}
+
+/* Add animation delay utility classes */
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Optimize images */
+img {
+  content-visibility: auto;
+}
+
+/* Improve performance for fixed elements */
+.fixed {
+  will-change: transform;
+}
+
+/* Reduce layout shifts for loading states */
+.min-h-placeholder {
+  min-height: 200px;
+}
