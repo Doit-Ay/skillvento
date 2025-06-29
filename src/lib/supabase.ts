@@ -3,18 +3,23 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Provide fallback values for development to prevent the app from crashing
-const defaultUrl = 'https://placeholder.supabase.co';
-const defaultKey = 'placeholder-key';
+// Check if we have valid Supabase configuration
+const hasValidConfig = supabaseUrl && 
+  supabaseAnonKey && 
+  supabaseUrl !== 'https://placeholder.supabase.co' && 
+  supabaseAnonKey !== 'placeholder-key' &&
+  supabaseUrl.includes('supabase.co');
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase environment variables are not set. Using placeholder values. Please set up Supabase to enable authentication.');
-}
-
-export const supabase = createClient(
-  supabaseUrl || defaultUrl, 
-  supabaseAnonKey || defaultKey
-);
+// Only create real client if we have valid configuration
+export const supabase = hasValidConfig 
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    })
+  : createClient('https://placeholder.supabase.co', 'placeholder-key');
 
 // Utility function to generate referral code
 export const generateReferralCode = () => {
@@ -73,7 +78,7 @@ export const blockchain = {
 // Auth helpers
 export const auth = {
   signUp: async (email: string, password: string, metadata?: any) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock authentication.');
       // Return mock successful signup
       return { 
@@ -87,17 +92,23 @@ export const auth = {
         error: null 
       };
     }
-    return await supabase.auth.signUp({ 
-      email, 
-      password,
-      options: {
-        data: metadata
-      }
-    });
+    
+    try {
+      return await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: metadata
+        }
+      });
+    } catch (error) {
+      console.error('Error in signUp:', error);
+      return { data: null, error };
+    }
   },
   
   signIn: async (email: string, password: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock authentication.');
       // Return mock successful login
       return { 
@@ -118,11 +129,17 @@ export const auth = {
         error: null 
       };
     }
-    return await supabase.auth.signInWithPassword({ email, password });
+    
+    try {
+      return await supabase.auth.signInWithPassword({ email, password });
+    } catch (error) {
+      console.error('Error in signIn:', error);
+      return { data: null, error };
+    }
   },
 
   signInWithOAuth: async (provider: 'google', referralCode?: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock authentication.');
       // Return mock successful OAuth
       return { 
@@ -131,35 +148,46 @@ export const auth = {
       };
     }
     
-    // Build redirect URL with referral code if provided
-    const baseRedirectUrl = `${window.location.origin}/dashboard`;
-    const redirectUrl = referralCode 
-      ? `${baseRedirectUrl}?ref=${encodeURIComponent(referralCode)}`
-      : baseRedirectUrl;
-    
-    return await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: redirectUrl,
-        queryParams: referralCode ? {
-          ref: referralCode
-        } : undefined
-      }
-    });
+    try {
+      // Build redirect URL with referral code if provided
+      const baseRedirectUrl = `${window.location.origin}/dashboard`;
+      const redirectUrl = referralCode 
+        ? `${baseRedirectUrl}?ref=${encodeURIComponent(referralCode)}`
+        : baseRedirectUrl;
+      
+      return await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: redirectUrl,
+          queryParams: referralCode ? {
+            ref: referralCode
+          } : undefined
+        }
+      });
+    } catch (error) {
+      console.error('Error in signInWithOAuth:', error);
+      return { data: null, error };
+    }
   },
   
   signOut: async () => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock authentication.');
       // Clear any local storage items
       localStorage.removeItem('supabase.auth.token');
       return { error: null };
     }
-    return await supabase.auth.signOut();
+    
+    try {
+      return await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error in signOut:', error);
+      return { error };
+    }
   },
   
   getCurrentUser: async () => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock authentication.');
       // Check if we have a mock user in localStorage
       const mockUserStr = localStorage.getItem('supabase.auth.token');
@@ -184,7 +212,7 @@ export const auth = {
   },
   
   onAuthStateChange: (callback: (event: string, session: any) => void) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock authentication.');
       // Return a mock subscription object
       return { 
@@ -195,22 +223,40 @@ export const auth = {
         } 
       };
     }
-    return supabase.auth.onAuthStateChange(callback);
+    
+    try {
+      return supabase.auth.onAuthStateChange(callback);
+    } catch (error) {
+      console.error('Error in onAuthStateChange:', error);
+      return { 
+        data: { 
+          subscription: { 
+            unsubscribe: () => {} 
+          } 
+        } 
+      };
+    }
   },
 
   // Admin auth functions
   sendMagicLink: async (email: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock authentication.');
       // Return mock successful magic link
       return { data: {}, error: null };
     }
-    return await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/admin11section/dashboard`
-      }
-    });
+    
+    try {
+      return await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/admin11section/dashboard`
+        }
+      });
+    } catch (error) {
+      console.error('Error in sendMagicLink:', error);
+      return { data: null, error };
+    }
   }
 };
 
@@ -218,7 +264,7 @@ export const auth = {
 export const db = {
   // Users
   getUserProfile: async (id: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       // Return mock profile data
       return { 
@@ -267,7 +313,7 @@ export const db = {
   },
   
   insertProfile: async (profileData: any) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -298,7 +344,7 @@ export const db = {
   },
   
   updateUserProfile: async (id: string, updates: any) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -326,7 +372,7 @@ export const db = {
   },
   
   getUserByUsername: async (username: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -367,7 +413,7 @@ export const db = {
   
   // Contact Info
   getContactInfo: async (userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -399,7 +445,7 @@ export const db = {
   },
   
   upsertContactInfo: async (userId: string, contactData: any) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -430,7 +476,7 @@ export const db = {
   
   // Academic Info
   getAcademicInfo: async (userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -466,7 +512,7 @@ export const db = {
   },
   
   insertAcademicInfo: async (academicData: any) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -490,7 +536,7 @@ export const db = {
   },
   
   updateAcademicInfo: async (id: string, updates: any) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -514,7 +560,7 @@ export const db = {
   },
   
   deleteAcademicInfo: async (id: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { data: null, error: null };
     }
@@ -532,7 +578,7 @@ export const db = {
   
   // Professional Experience
   getProfessionalExperience: async (userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -568,7 +614,7 @@ export const db = {
   },
   
   insertProfessionalExperience: async (experienceData: any) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -592,7 +638,7 @@ export const db = {
   },
   
   updateProfessionalExperience: async (id: string, updates: any) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -616,7 +662,7 @@ export const db = {
   },
   
   deleteProfessionalExperience: async (id: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { data: null, error: null };
     }
@@ -634,7 +680,7 @@ export const db = {
   
   // Certificates
   getUserCertificates: async (userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -692,7 +738,7 @@ export const db = {
   },
   
   getPublicCertificates: async (userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -733,7 +779,7 @@ export const db = {
   },
   
   getCertificateById: async (id: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -771,7 +817,7 @@ export const db = {
   },
   
   insertCertificate: async (certificate: any) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -795,7 +841,7 @@ export const db = {
   },
   
   updateCertificate: async (id: string, updates: any) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -819,7 +865,7 @@ export const db = {
   },
   
   deleteCertificate: async (id: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { data: null, error: null };
     }
@@ -836,7 +882,7 @@ export const db = {
   },
   
   getCertificateCount: async (userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return 5; // Mock count
     }
@@ -855,7 +901,7 @@ export const db = {
 
   // Certificate Verification
   verifyCertificate: async (verificationCode: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -931,7 +977,7 @@ export const db = {
     verification_code: string;
     status?: string;
   }) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -964,7 +1010,7 @@ export const db = {
   
   // Update user portfolio theme
   updateUserPortfolioTheme: async (userId: string, theme: string, layout?: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -999,7 +1045,7 @@ export const db = {
   
   // Get portfolio themes
   getPortfolioThemes: async () => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -1054,7 +1100,7 @@ export const db = {
   
   // Dismiss learning recommendation
   dismissLearningRecommendation: async (id: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { data: null, error: null };
     }
@@ -1072,7 +1118,7 @@ export const db = {
   
   // Notifications
   getUserNotifications: async (userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -1114,7 +1160,7 @@ export const db = {
   },
   
   getUnreadNotificationsCount: async (userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return 1; // Mock count
     }
@@ -1133,7 +1179,7 @@ export const db = {
   },
   
   markNotificationAsRead: async (notificationId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { data: null, error: null };
     }
@@ -1150,7 +1196,7 @@ export const db = {
   },
   
   markAllNotificationsAsRead: async (userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { data: null, error: null };
     }
@@ -1168,7 +1214,7 @@ export const db = {
   },
   
   deleteNotification: async (notificationId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { data: null, error: null };
     }
@@ -1186,7 +1232,7 @@ export const db = {
   
   // Teams
   getUserTeams: async (userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -1274,7 +1320,7 @@ export const db = {
   },
   
   getTeamById: async (id: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       // Get current user
       const user = await auth.getCurrentUser();
@@ -1396,7 +1442,7 @@ export const db = {
   },
 
   createTeam: async (teamData: any, ownerId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       const teamId = 'team-' + Date.now();
       return { 
@@ -1464,7 +1510,7 @@ export const db = {
 
   // Team Certificates
   getTeamCertificates: async (teamId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -1514,7 +1560,7 @@ export const db = {
   },
 
   addCertificateToTeam: async (teamId: string, certificateId: string, addedBy: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -1544,7 +1590,7 @@ export const db = {
   },
 
   removeCertificateFromTeam: async (teamId: string, certificateId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { data: null, error: null };
     }
@@ -1563,7 +1609,7 @@ export const db = {
 
   // Team Management
   leaveTeam: async (teamId: string, userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { data: null, error: null };
     }
@@ -1581,7 +1627,7 @@ export const db = {
   },
 
   deleteTeam: async (teamId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { data: null, error: null };
     }
@@ -1599,7 +1645,7 @@ export const db = {
   },
 
   joinTeam: async (inviteCode: string, userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -1662,7 +1708,7 @@ export const db = {
 
   // Function to handle referral processing
   processReferral: async (userId: string, referralCode: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { success: true };
     }
@@ -1710,7 +1756,7 @@ export const db = {
   
   // Referrals
   getReferralStats: async (userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { count: 3, bonusUploads: 15 };
     }
@@ -1736,7 +1782,7 @@ export const db = {
 
   // Subscriptions
   createSubscription: async (subscriptionData: any) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -1766,7 +1812,7 @@ export const db = {
   },
 
   getUserSubscription: async (userId: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -1805,7 +1851,7 @@ export const db = {
   },
 
   updateSubscription: async (id: string, updates: any) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -1832,7 +1878,7 @@ export const db = {
 
   // Admin functions
   getAllUsers: async () => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -1871,7 +1917,7 @@ export const db = {
   },
 
   getAllCertificates: async () => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -1916,7 +1962,7 @@ export const db = {
   },
 
   getAllSubscriptions: async () => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -1952,7 +1998,7 @@ export const db = {
 
   // Function to get user teams without RLS recursion
   get_user_teams: async (user_id: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -1985,7 +2031,7 @@ export const db = {
 
   // Function to get team with members without RLS recursion
   get_team_with_members: async (team_id: string, requesting_user_id: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: [
@@ -2025,7 +2071,7 @@ export const db = {
 // Storage helpers
 export const storage = {
   uploadCertificate: async (file: File, userId: string, suffix: string = '') => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { 
         data: {
@@ -2049,7 +2095,7 @@ export const storage = {
   },
   
   getPublicUrl: (path: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return {
         data: {
@@ -2073,7 +2119,7 @@ export const storage = {
   },
   
   deleteCertificate: async (path: string) => {
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!hasValidConfig) {
       console.log('Supabase is not configured. Using mock data.');
       return { data: null, error: null };
     }
