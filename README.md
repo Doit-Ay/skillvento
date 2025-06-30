@@ -5,7 +5,7 @@ Skillvento is an **AI-powered career platform** that helps students and professi
 
 > This project was built with ❤️ using [**Bolt**](https://bolt.new).
 
-# Link - [**Skillvento**]([https://bolt.new](https://skillvento.mitraadi.com/))
+# Link - [**Skillvento**](https://skillvento.mitraadi.com)
 
 ---
 
