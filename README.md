@@ -3,10 +3,9 @@
 
 Skillvento is an **AI-powered career platform** that helps students and professionals accelerate their growth. With a secure **Certificate Vault**, an intuitive **AI Resume Builder**, **team collaboration features**, and a **shareable portfolio**, Skillvento empowers users to showcase their skills, track their progress, and stand out to employers — all in one place.
 
-> This project was built with ❤️ using [**Bolt**](https://bolt.build).
+> This project was built with ❤️ using [**Bolt**](https://bolt.new).
 
-<!-- 🚨 It's highly recommended to replace the image path below with an actual screenshot of your live app -->
-![Skillvento Screenshot Placeholder](/path/to/screenshot.png)
+# Link - https://skillvento.mitraadi.com/
 
 ---
 
